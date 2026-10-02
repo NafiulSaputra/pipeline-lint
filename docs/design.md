@@ -134,16 +134,24 @@ like dates (`'2026-13-01'`, `'2026-01-01-backup'`).
 
 ### DE004 — `select-star-into-write` (warning)
 
-**Detects:** `SELECT *` (or `alias.*`) whose result feeds a write: `INSERT ... SELECT *`,
-`CREATE TABLE ... AS SELECT *`, the source of a `MERGE`; PySpark `.select("*")`.
+**Detects**
+- SQL: `*` or `alias.*` in the final projection of a query that feeds `INSERT INTO`,
+  `INSERT OVERWRITE` (each branch of a `UNION` counts), or `CREATE [OR REPLACE] TABLE ... AS`.
+- PySpark: `.select("*")` / `.select("alias.*")` whose result is written in the same chain
+  (`.write...` or `.writeTo(...)`).
 
-**Why it is wrong:** when an upstream table adds, removes, or reorders a column, the write either
-fails or — with positional inserts — silently puts values into the wrong columns.
+**Why it is wrong:** INSERT matches columns by position. When an upstream table adds, removes or
+reorders a column, the write either fails or silently puts values into the wrong columns.
+`CREATE TABLE AS SELECT *` copies every upstream change, including unreviewed columns such as
+newly added personal data.
 
 **Fix:** list columns explicitly.
 
-**Does not flag:** `COUNT(*)`, `SELECT *` inside `EXISTS (...)`, exploratory queries that do not write.
-This is the difference from SQLFluff's generic `SELECT *` rule: only writes are flagged.
+**Does not flag:** `COUNT(*)`; `SELECT *` inside `EXISTS (...)`, subqueries or CTEs whose outer
+projection is explicit; exploratory queries that do not write; views; `INSERT ... BY NAME`;
+Delta `MERGE` actions (`UPDATE SET *`, `INSERT *`) and `MERGE` sources, because MERGE matches
+columns by name rather than position. This is the difference from SQLFluff's generic `SELECT *`
+rule: only stars that decide the written columns are flagged.
 
 ### DE005 — `driver-collect` (warning)
 
