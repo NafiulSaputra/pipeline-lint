@@ -5,6 +5,7 @@ description = "Data pipeline linter for SQL, PySpark, Databricks and Airflow. Ca
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [{ name = "Nafiul Saputra" }]
 keywords = ["linter", "data-engineering", "pyspark", "databricks", "airflow", "sql", "idempotency"]
 classifiers = [
@@ -22,6 +23,12 @@ dependencies = [
     "sqlglot>=30.0,<31",
     "typer>=0.12",
 ]
+
+[project.urls]
+Homepage = "https://github.com/NafiulSaputra/pipeline-lint"
+Documentation = "https://github.com/NafiulSaputra/pipeline-lint#readme"
+Issues = "https://github.com/NafiulSaputra/pipeline-lint/issues"
+Changelog = "https://github.com/NafiulSaputra/pipeline-lint/blob/main/CHANGELOG.md"
 
 [project.scripts]
 pipeline-lint = "pipeline_lint.cli:app"
