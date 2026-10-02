@@ -114,17 +114,23 @@ present, the message says so explicitly, because it is the most common misconcep
 ### DE003 — `hardcoded-date` (warning)
 
 **Detects**
-- SQL: a date or timestamp literal (`'2026-01-01'`, `DATE '2026-01-01'`) used in a comparison
-  (`=`, `<`, `>`, `<=`, `>=`, `BETWEEN`, `IN`) inside `WHERE`, `ON`, `HAVING` or `QUALIFY`.
-- PySpark: a date string literal inside `.filter(...)` / `.where(...)` arguments.
+- SQL: a string literal that is a real calendar date or timestamp (`'2026-01-01'`,
+  `DATE '2026-01-01'`, `'2026-01-01T08:00:00Z'`, also inside functions such as `to_date(...)`)
+  used in a comparison (`=`, `<>`, `<`, `>`, `<=`, `>=`, `BETWEEN`, `IN`) inside `WHERE`, `ON`,
+  `HAVING` or `QUALIFY`. The violation points at the literal itself.
+- PySpark: inside the arguments of `.filter(...)`, `.where(...)` and `.between(...)`: date
+  strings, quoted dates inside SQL expression strings (`.where("d >= '2026-01-01'")`), and
+  `date(...)` / `datetime(...)` calls with literal year, month and day.
 
 **Why it is wrong:** the query is only correct on the day it was written; scheduled runs and
 backfills silently process the wrong window.
 
 **Fix:** use the orchestrator's logical date (`{{ ds }}`, `data_interval_start`) or a job parameter.
 
-**Does not flag:** well-known sentinel dates (`1900-01-01`, `1970-01-01`, `9999-12-31`),
-which are common in SCD Type 2 tables; dates in DDL defaults.
+**Does not flag:** sentinel dates (`0001-01-01`, `1900-01-01`, `1970-01-01`, `2999-12-31`,
+`9999-12-31`), common in SCD Type 2 tables; templated values (`'{{ ds }}'`, `'${run_date}'`);
+dates outside filters (`SELECT` list, `CASE` in projections, `withColumn`); strings that only look
+like dates (`'2026-13-01'`, `'2026-01-01-backup'`).
 
 ### DE004 — `select-star-into-write` (warning)
 

@@ -84,6 +84,20 @@ class SourceFile:
         """Source lines, indexed so that ``lines[n - 1]`` is line ``n``."""
         return self.text.split("\n")
 
+    def find_text(self, needle: str, start: tuple[int, int] = (1, 1)) -> tuple[int, int] | None:
+        """1-based ``(line, column)`` of the first ``needle`` at or after ``start``, or None.
+
+        Used to point SQL violations at the exact literal: sqlglot does not keep source
+        positions for every node, but the literal's text appears verbatim in the file.
+        """
+        start_line, start_column = start
+        for index in range(max(start_line, 1) - 1, len(self.lines)):
+            offset = start_column - 1 if index == start_line - 1 else 0
+            found = self.lines[index].find(needle, max(offset, 0))
+            if found != -1:
+                return index + 1, found + 1
+        return None
+
     def char_column(self, line: int, byte_offset: int) -> int:
         """Convert a 0-based UTF-8 byte offset (as used by ``ast``) to a 1-based character column.
 
