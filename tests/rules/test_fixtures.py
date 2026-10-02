@@ -56,5 +56,6 @@ def test_fixture(path: Path) -> None:
     result = lint_paths([path], rules=rules)
 
     assert not result.skipped, f"fixture could not be parsed: {result.skipped}"
+    assert not result.notices, f"fixture contains unparsable SQL: {result.notices}"
     actual = {(v.line, v.rule_id) for v in result.violations}
     assert actual == expected

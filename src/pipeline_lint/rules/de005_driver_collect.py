@@ -8,7 +8,7 @@ from pipeline_lint.models import Severity, SourceFile, Violation
 from pipeline_lint.parsing.python import (
     AssignmentIndex,
     attribute_name_position,
-    imports_module,
+    is_spark_code,
     iter_method_calls,
     receiver_methods,
 )
@@ -23,9 +23,6 @@ BOUNDING_METHODS = frozenset({"limit"})
 # `.agg()` without grouping is a global aggregate: exactly one row, safe to collect.
 # With grouping it returns one row per group, which can be arbitrarily large.
 GROUPING_METHODS = frozenset({"groupBy", "groupby", "rollup", "cube"})
-
-# Modules whose presence marks a file as Spark code.
-SPARK_MODULES = ("pyspark", "databricks.connect")
 
 
 @register
@@ -54,7 +51,7 @@ class DriverCollect(Rule):
 
     def check_python(self, source: SourceFile) -> Iterator[Violation]:
         tree = source.python_ast
-        if tree is None or not _is_spark_code(source):
+        if tree is None or not is_spark_code(tree, source.kind):
             return
 
         assignments = AssignmentIndex(tree)
@@ -80,11 +77,3 @@ class DriverCollect(Rule):
                     "keep the work distributed or bound it with .limit(n) first"
                 ),
             )
-
-
-def _is_spark_code(source: SourceFile) -> bool:
-    # Databricks notebooks get a ready-made `spark` session and usually import nothing.
-    if source.kind == "databricks_notebook":
-        return True
-    assert source.python_ast is not None
-    return any(imports_module(source.python_ast, module) for module in SPARK_MODULES)

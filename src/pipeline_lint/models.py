@@ -7,9 +7,15 @@ from dataclasses import dataclass
 from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from sqlglot import exp
 
 SourceKind = Literal["sql", "python", "databricks_notebook"]
+
+# Where a SQL statement came from: a .sql file, a spark.sql("...") call, or a %sql notebook cell.
+SqlOrigin = Literal["sql_file", "spark_sql", "notebook_magic"]
 
 
 class Severity(StrEnum):
@@ -36,13 +42,38 @@ class Violation:
 
 
 @dataclass(frozen=True)
+class SqlStatement:
+    """One parsed SQL statement, with its position in the original file."""
+
+    expression: exp.Expression
+    line: int
+    column: int
+    origin: SqlOrigin
+
+
+@dataclass(frozen=True, order=True)
+class ParseNotice:
+    """Part of a file that could not be parsed and was therefore not checked.
+
+    Notices are shown to the user but never fail the run: the linter cannot claim a
+    violation in code it could not read.
+    """
+
+    path: Path
+    line: int
+    message: str
+
+
+@dataclass(frozen=True)
 class SourceFile:
-    """A file loaded from disk, classified and (for Python) parsed."""
+    """A file loaded from disk, classified and parsed."""
 
     path: Path
     text: str
     kind: SourceKind
     python_ast: ast.Module | None = None
+    sql_statements: tuple[SqlStatement, ...] = ()
+    notices: tuple[ParseNotice, ...] = ()
 
     @property
     def is_python(self) -> bool:
@@ -67,7 +98,7 @@ class SourceFile:
 
 @dataclass(frozen=True)
 class SkippedFile:
-    """A file that could not be checked, with a human-readable reason."""
+    """A file that could not be checked at all, with a human-readable reason."""
 
     path: Path
     reason: str

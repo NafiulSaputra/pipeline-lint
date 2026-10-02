@@ -27,6 +27,11 @@ def render_text(result: LintResult, console: Console, err_console: Console) -> N
             Text.assemble(("warning: ", "yellow"), f"skipped {skipped.path}: {skipped.reason}")
         )
 
+    for notice in result.notices:
+        err_console.print(
+            Text.assemble(("warning: ", "yellow"), f"{notice.path}:{notice.line}: {notice.message}")
+        )
+
     current_path: Path | None = None
     for violation in result.violations:
         if violation.path != current_path:

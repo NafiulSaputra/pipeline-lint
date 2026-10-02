@@ -79,6 +79,11 @@ An append is not idempotent: every re-run adds the same rows again.
 **Does not flag:** `INSERT OVERWRITE`, `MERGE`, `INSERT ... ON CONFLICT`, `INSERT OR REPLACE`,
 Databricks `INSERT INTO ... REPLACE WHERE`, `DeltaTable.merge(...)`, streaming writes (`writeStream`).
 
+A `DELETE`/`TRUNCATE` of the target earlier in the same file — including one issued through
+`spark.sql("...")` before a PySpark append — makes the write idempotent and is not flagged.
+Table names match case-insensitively, and an unqualified name matches a qualified one
+(`orders` ↔ `sales.orders`), because the linter cannot know the session's current schema.
+
 **Known limitations:** a delete performed in another task or file is invisible → use `noqa`.
 
 ### DE002 — `unscoped-overwrite` (warning)
@@ -212,7 +217,8 @@ flowchart LR
 | **SQL parser** | `sqlglot`, dialect configurable (default `spark`). Parse errors never crash the run: the file is reported as skipped on stderr. |
 | **Python parser** | Standard-library `ast`. |
 | **Notebook splitter** | Splits cells on `# COMMAND ----------`; `# MAGIC %sql` cells become SQL statements with correct line offsets. |
-| **Embedded SQL extractor** | Finds `spark.sql("<literal>")` calls and parses the literal as SQL, mapping lines back to the Python file. |
+| **Embedded SQL extractor** | Finds `spark.sql("<literal>")` calls — or `spark.sql(query)` where `query` was assigned a literal — and parses the text as SQL, mapping lines back to the Python file. |
+| **Template masking** | Replaces Jinja (`{{ ds }}`, `{% if %}`) and `${var}` with a placeholder before parsing, preserving line numbers, so templated Airflow/dbt SQL can be checked. |
 | **Rule engine** | Runs every enabled rule on every source; collects `Violation` objects. |
 | **noqa filter** | Removes violations suppressed on their line. |
 | **Reporters** | Turn the list of violations into text, JSON, or SARIF. |
@@ -238,7 +244,8 @@ class Violation:
 @dataclass(frozen=True)
 class SqlStatement:
     expression: sqlglot.exp.Expression
-    line_offset: int  # line in the original file where the statement starts
+    line: int  # line in the original file where the statement starts
+    column: int  # exact for .sql files, 1 for SQL extracted from Python/notebooks
     origin: Literal["sql_file", "spark_sql", "notebook_magic"]
 
 
@@ -248,7 +255,8 @@ class SourceFile:
     text: str
     kind: Literal["sql", "python", "databricks_notebook"]
     python_ast: ast.Module | None
-    sql_statements: list[SqlStatement]
+    sql_statements: tuple[SqlStatement, ...]  # all SQL in the file, ordered by line
+    notices: tuple[ParseNotice, ...]  # SQL statements that could not be parsed
 ```
 
 ### Rule interface
@@ -262,7 +270,8 @@ class Rule(ABC):
     rationale: ClassVar[str]
     fix_example: ClassVar[str]
 
-    def check_sql(self, stmt: SqlStatement, source: SourceFile) -> Iterator[Violation]:
+    def check_sql(self, source: SourceFile) -> Iterator[Violation]:
+        # Receives the whole file: some rules need earlier statements (DELETE before INSERT).
         return iter(())
 
     def check_python(self, source: SourceFile) -> Iterator[Violation]:
@@ -272,8 +281,10 @@ class Rule(ABC):
 Rules register themselves with a `@register` decorator. A cross-language rule (DE001–DE004)
 implements both methods under a single rule ID, so users configure one rule, not two.
 
-**Line numbers:** `sqlglot` does not expose a reliable position for every node. v0.1 reports
-the most precise position available and falls back to the statement's start line.
+**Line numbers:** SQL is split into statements from sqlglot's token stream, and each statement
+is parsed separately. SQL violations are reported at the statement's start line. Parsing per
+statement also means one unsupported statement becomes a *notice* (shown, never failing the run)
+instead of hiding the rest of the file.
 
 ## 5. Configuration
 
