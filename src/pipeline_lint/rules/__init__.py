@@ -7,6 +7,8 @@ from pipeline_lint.rules import (  # noqa: F401
     de003_hardcoded_date,
     de004_select_star_into_write,
     de005_driver_collect,
+    de006_airflow_missing_retries,
+    de007_airflow_unsafe_catchup,
 )
 from pipeline_lint.rules.base import Rule
 from pipeline_lint.rules.registry import REGISTRY, RuleRegistry, register, select_rules

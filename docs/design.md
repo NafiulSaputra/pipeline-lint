@@ -182,6 +182,9 @@ Without retries, every blip becomes a failed run and a manual re-run.
 **Fix:** set `retries` and `retry_delay` in `default_args`. Retries are only safe when tasks
 are idempotent — see DE001.
 
+**Does not flag:** `default_args` the linter cannot see (imported, returned by a function,
+or merged with `{**base}`); a variable as the retries value.
+
 **Known limitations:** retries set per task are not detected → use `noqa`.
 
 ### DE007 — `airflow-unsafe-catchup` (error)
@@ -194,6 +197,9 @@ since `start_date`. A missing or moving `start_date` makes that set of runs unpr
 combined with non-idempotent tasks, this produces duplicated or inconsistent data.
 
 **Fix:** a fixed, timezone-aware `start_date`, or `catchup=False`.
+
+`start_date` is looked up in the DAG arguments and in `default_args`, following simple
+variables. When it is absent and `default_args` cannot be seen, the rule does not guess.
 
 **Note:** Ruff's `AIR` rules flag dynamic DAG arguments in general; DE007 targets the specific
 catchup + start_date combination that causes unintended backfills.
