@@ -28,6 +28,7 @@ pipeline-lint = "pipeline_lint.cli:app"
 
 [dependency-groups]
 dev = [
+    "pre-commit>=3.7",
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.6",
@@ -44,11 +45,27 @@ packages = ["src/pipeline_lint"]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 
+[tool.coverage.run]
+source = ["pipeline_lint"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 # Fixtures and examples intentionally contain flawed pipeline code.
 extend-exclude = ["tests/fixtures", "examples"]
+# Respect the excludes above even when pre-commit passes those files explicitly.
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+# pipeline-lint's own codes, so "# noqa: DE001" comments are not reported as unknown.
+external = ["DE"]
+
+[tool.pipeline-lint]
+# The fixtures contain intentional violations; the examples are left in on purpose as a demo.
+exclude = ["tests/fixtures/**"]

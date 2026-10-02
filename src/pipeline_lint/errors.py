@@ -25,3 +25,7 @@ class RuleCrashError(PipelineLintError):
         super().__init__(f"rule {rule_id} crashed while checking {path}")
         self.rule_id = rule_id
         self.path = path
+
+
+class ConfigError(PipelineLintError):
+    """Invalid configuration in pyproject.toml or on the command line."""

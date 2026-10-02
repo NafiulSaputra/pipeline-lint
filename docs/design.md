@@ -323,7 +323,14 @@ exclude = ["tests/fixtures/**", "notebooks/scratch/**"]
 sql-dialect = "spark"        # any sqlglot dialect: spark, databricks, bigquery, snowflake, postgres...
 ```
 
-Precedence: CLI flags > `pyproject.toml` > built-in defaults.
+Precedence: CLI flags > `pyproject.toml` > built-in defaults. `--select` replaces the configured
+list; `--ignore` adds to it. The nearest `pyproject.toml` above the current directory is used
+unless `--config` is given; unknown keys, wrong types and unknown dialects are reported as errors
+(exit code 2) rather than silently ignored.
+
+Like Ruff, `exclude` applies to files found by walking directories and is matched relative to the
+directory of the config file. A file passed explicitly (for example by pre-commit) is always
+checked.
 `tomllib` (standard library since Python 3.11) is used, so there is no extra TOML dependency.
 
 ## 6. Suppression (`noqa`)
@@ -340,6 +347,8 @@ INSERT INTO audit_log SELECT ...;  -- noqa: DE001
 - Multiple codes: `# noqa: DE001, DE003`.
 - Works inside Databricks `# MAGIC` lines.
 - Coexistence with Ruff: add `external = ["DE"]` under `[tool.ruff.lint]` so Ruff does not report the codes as unknown.
+- SQL violations are reported at the statement's first line, so that is where `-- noqa` goes.
+- The number of suppressed violations is shown in the summary, so suppressions stay visible.
 
 ## 7. Output formats
 
@@ -375,7 +384,7 @@ GitHub code scanning shows these as annotations on pull requests.
 ```
 pipeline-lint check [PATHS]... [--format text|json|sarif] [--output FILE]
                                [--select IDS] [--ignore IDS] [--config FILE]
-                               [--fail-on warning|error]
+                               [--fail-on warning|error] [--sql-dialect NAME]
 pipeline-lint rules            # list all rules with severity and summary
 pipeline-lint --version
 ```

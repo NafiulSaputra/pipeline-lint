@@ -1,0 +1,8 @@
+# Hook definition for projects that use pipeline-lint through pre-commit.
+# See README.md for the snippet to add to your .pre-commit-config.yaml.
+- id: pipeline-lint
+  name: pipeline-lint
+  description: Catch rerun-safety and data-correctness issues in SQL, PySpark and Airflow code.
+  entry: pipeline-lint check
+  language: python
+  types_or: [python, sql]

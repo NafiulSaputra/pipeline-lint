@@ -9,6 +9,7 @@ from pathlib import Path
 from pipeline_lint.discovery import discover_files
 from pipeline_lint.errors import RuleCrashError, SourceError
 from pipeline_lint.models import ParseNotice, Severity, SkippedFile, SourceFile, Violation
+from pipeline_lint.noqa import apply_noqa
 from pipeline_lint.parsing import load_source
 from pipeline_lint.parsing.sql import DEFAULT_DIALECT
 from pipeline_lint.rules import REGISTRY, Rule
@@ -22,6 +23,7 @@ class LintResult:
     files_checked: int
     skipped: list[SkippedFile] = field(default_factory=list)
     notices: list[ParseNotice] = field(default_factory=list)
+    suppressed: int = 0  # violations hidden by noqa comments
 
     @property
     def error_count(self) -> int:
@@ -41,6 +43,7 @@ def lint_paths(
     *,
     rules: Iterable[Rule] | None = None,
     exclude: Sequence[str] = (),
+    exclude_root: Path | None = None,
     sql_dialect: str = DEFAULT_DIALECT,
 ) -> LintResult:
     """Lint every supported file under ``paths``.
@@ -57,9 +60,10 @@ def lint_paths(
     violations: list[Violation] = []
     skipped: list[SkippedFile] = []
     notices: list[ParseNotice] = []
+    suppressed = 0
     files_checked = 0
 
-    for path in discover_files(paths, exclude=exclude):
+    for path in discover_files(paths, exclude=exclude, root=exclude_root):
         try:
             source = load_source(path, sql_dialect=sql_dialect)
         except SourceError as exc:
@@ -67,13 +71,16 @@ def lint_paths(
             continue
         files_checked += 1
         notices.extend(source.notices)
-        violations.extend(lint_source(source, active_rules))
+        kept, hidden = apply_noqa(source, lint_source(source, active_rules))
+        violations.extend(kept)
+        suppressed += hidden
 
     return LintResult(
         violations=sorted(violations),
         files_checked=files_checked,
         skipped=skipped,
         notices=sorted(notices),
+        suppressed=suppressed,
     )
 
 

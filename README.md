@@ -1,5 +1,7 @@
 # pipeline-lint
 
+[![CI](https://github.com/NafiulSaputra/pipeline-lint/actions/workflows/ci.yml/badge.svg)](https://github.com/NafiulSaputra/pipeline-lint/actions/workflows/ci.yml)
+
 Data pipeline linter for SQL, PySpark, Databricks and Airflow. Catches non-idempotent writes,
 duplicate data on rerun, and other mistakes AI-generated pipelines make.
 

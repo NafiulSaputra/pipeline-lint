@@ -24,6 +24,11 @@ class Severity(StrEnum):
     ERROR = "error"
     WARNING = "warning"
 
+    @property
+    def rank(self) -> int:
+        """Ordering for thresholds such as ``--fail-on``: higher is more serious."""
+        return {"warning": 1, "error": 2}[self.value]
+
 
 @dataclass(frozen=True, order=True)
 class Violation:

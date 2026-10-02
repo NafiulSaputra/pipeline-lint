@@ -54,15 +54,16 @@ def render_text(result: LintResult, console: Console, err_console: Console) -> N
 
 
 def _summary(result: LintResult) -> Text:
+    suppressed = f" {result.suppressed} suppressed by noqa." if result.suppressed else ""
     if not result.violations:
         return Text(
-            f"All checks passed ({_plural(result.files_checked, 'file')} checked).",
+            f"All checks passed ({_plural(result.files_checked, 'file')} checked).{suppressed}",
             style="green",
         )
     return Text(
         f"Found {_plural(len(result.violations), 'violation')} "
         f"({_plural(result.error_count, 'error')}, {_plural(result.warning_count, 'warning')}) "
-        f"in {_plural(result.files_with_violations, 'file')}.",
+        f"in {_plural(result.files_with_violations, 'file')}.{suppressed}",
         style="bold",
     )
 

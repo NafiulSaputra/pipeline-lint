@@ -1,0 +1,23 @@
+# Hooks for developing pipeline-lint itself. Install once with:
+#   uv run pre-commit install
+# Local hooks reuse the versions pinned in uv.lock, so pre-commit and CI always agree.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: pipeline-lint
+        name: pipeline-lint (self-check)
+        entry: uv run pipeline-lint check
+        language: system
+        types_or: [python, sql]
+        # Fixtures and examples contain intentional violations.
+        exclude: ^(tests/fixtures|examples)/
