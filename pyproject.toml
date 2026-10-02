@@ -5,7 +5,7 @@ description = "Data pipeline linter for SQL, PySpark, Databricks and Airflow. Ca
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
-authors = [{ name = "Nafiul Hadi Saputra" }]
+authors = [{ name = "Nafiul Saputra" }]
 keywords = ["linter", "data-engineering", "pyspark", "databricks", "airflow", "sql", "idempotency"]
 classifiers = [
     "Development Status :: 3 - Alpha",

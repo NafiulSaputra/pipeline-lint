@@ -26,7 +26,7 @@ EXIT_OK = 0
 EXIT_VIOLATIONS = 1
 EXIT_ERROR = 2
 
-ISSUES_URL = "https://github.com/<NafiulSaputra>/pipeline-lint/issues"
+ISSUES_URL = "https://github.com/NafiulSaputra/pipeline-lint/issues"
 
 app = typer.Typer(
     name="pipeline-lint",

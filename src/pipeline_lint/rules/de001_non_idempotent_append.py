@@ -13,6 +13,7 @@ from pipeline_lint.parsing.python import (
     ChainLink,
     attribute_name_position,
     chained_calls,
+    insert_into_overwrite,
     is_spark_code,
     iter_method_calls,
     parent_map,
@@ -159,7 +160,7 @@ def _append_target(
     if attr.attr == "insertInto":
         # df.write.insertInto("t") appends unless overwrite=True. If .mode(...) is set
         # explicitly, the append case is already reported at the .mode() call.
-        if "write" not in names or "mode" in names or _overwrite_requested(call):
+        if "write" not in names or "mode" in names or insert_into_overwrite(call):
             return None
         return ".insertInto()", _table(string_arg(call))
 
@@ -172,12 +173,6 @@ def _append_target(
         return ".writeTo(...).append()", _table(table)
 
     return None
-
-
-def _overwrite_requested(call: ast.Call) -> bool:
-    """True for ``insertInto(t, True)`` or ``insertInto(t, overwrite=True)``."""
-    candidates = call.args[1:2] + [kw.value for kw in call.keywords if kw.arg == "overwrite"]
-    return any(isinstance(node, ast.Constant) and node.value is True for node in candidates)
 
 
 def _table(name: str | None) -> TableName | None:

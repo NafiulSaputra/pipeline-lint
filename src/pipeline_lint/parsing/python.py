@@ -69,6 +69,12 @@ def string_arg(call: ast.Call, index: int = 0, keyword: str | None = None) -> st
     return None
 
 
+def insert_into_overwrite(call: ast.Call) -> bool:
+    """True for ``insertInto(t, True)`` or ``insertInto(t, overwrite=True)``."""
+    candidates = call.args[1:2] + [kw.value for kw in call.keywords if kw.arg == "overwrite"]
+    return any(isinstance(node, ast.Constant) and node.value is True for node in candidates)
+
+
 class Assignment(NamedTuple):
     lineno: int
     value: ast.expr

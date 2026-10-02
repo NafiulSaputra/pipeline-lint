@@ -89,20 +89,27 @@ Table names match case-insensitively, and an unqualified name matches a qualifie
 ### DE002 — `unscoped-overwrite` (warning)
 
 **Detects**
-- PySpark: `.mode("overwrite")` followed by `.save()` / `.saveAsTable()` without
-  `.option("replaceWhere", ...)` or `.option("partitionOverwriteMode", "dynamic")`, in a file that
-  does not set `spark.sql.sources.partitionOverwriteMode` to `dynamic`.
+- PySpark: `.mode("overwrite")` on a batch writer, and `.insertInto(table, overwrite=True)`,
+  when neither `.option("replaceWhere", ...)` nor `.option("partitionOverwriteMode", "dynamic")`
+  (or the `.options(...)` equivalents) appears anywhere in the writer chain.
 - SQL: `INSERT OVERWRITE [TABLE] <table>` without a `PARTITION (...)` clause.
 
 **Why it is wrong:** a job intended to refresh one partition replaces the entire table.
 Note that `.partitionBy(...)` alone does **not** make an overwrite safe: under Spark's default
-*static* partition overwrite mode, all partitions are still replaced.
+*static* partition overwrite mode, all partitions are still replaced. When `.partitionBy()` is
+present, the message says so explicitly, because it is the most common misconception.
 
-**Fix:** `replaceWhere` (Delta), dynamic partition overwrite, or `MERGE`.
+**Fix:** `replaceWhere` (Delta), dynamic partition overwrite, a `PARTITION` clause, or `MERGE`.
 
-**Does not flag:** overwrites scoped by `replaceWhere`, a `PARTITION` clause, or dynamic mode.
+**Does not flag:** scoped overwrites; `writeTo(t).overwritePartitions()` and `.overwrite(condition)`;
+`createOrReplace()` (an intentional full replacement); streaming writes; files that set
+`spark.sql.sources.partitionOverwriteMode` to `dynamic` for the whole session
+(`spark.conf.set`, `SparkSession.builder.config`, or SQL `SET`).
 
 **Why only a warning:** full refreshes of small dimension tables are legitimate.
+
+**Known limitations:** a writer stored in a variable and finished on a later line
+(`w = df.write.mode("overwrite")`, then `w.option("replaceWhere", ...).save()`) is flagged → use `noqa`.
 
 ### DE003 — `hardcoded-date` (warning)
 

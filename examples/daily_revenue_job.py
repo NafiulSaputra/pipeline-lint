@@ -17,3 +17,6 @@ revenue = orders.groupBy("store_id").agg(F.sum("amount").alias("revenue"))
 revenue.toPandas().to_csv("/tmp/daily_revenue.csv", index=False)
 
 revenue.write.mode("append").saveAsTable("analytics.daily_revenue")
+
+# Keep a "latest" copy partitioned by store
+revenue.write.mode("overwrite").partitionBy("store_id").saveAsTable("analytics.store_revenue_latest")
