@@ -1,6 +1,6 @@
 [project]
 name = "pipeline-lint"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Data pipeline linter for SQL, PySpark, Databricks and Airflow. Catches non-idempotent writes, duplicate data on rerun, and other mistakes AI-generated pipelines make."
 readme = "README.md"
 requires-python = ">=3.11"
